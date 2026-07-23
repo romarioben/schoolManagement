@@ -11,7 +11,9 @@ from alembic import context
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.config import settings  # noqa: E402
-from auth_app.models import Base  # noqa: E402  -- imports every model so metadata is complete
+from config.database import Base  # noqa: E402  -- imports every model so metadata is complete
+from auth_app.models import User  # noqa: E402
+from main_app.models import Student, Parent
 
 database_url = settings.database_url
 
