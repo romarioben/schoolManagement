@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from auth_app.schemas import UserCreate, UserOut
 
@@ -91,5 +91,111 @@ class ParentWithStudentsResponse(ParentResponse):
     class Config:
         from_attributes = True
 
+
+# ==================== LEVEL SCHEMAS ====================
+
+
+class LevelBase(BaseModel):
+  pass
+
+
+class LevelCreate(LevelBase):
+    levelName: str
+    pass
+
+
+class LevelResponse(LevelBase):
+  id: int
+  levelName: str
+
+  model_config = ConfigDict(from_attributes=True)
+
+
+# ==================== SERIE SCHEMAS ====================
+
+
+class SerieBase(BaseModel):
+  pass
+
+
+class SerieCreate(SerieBase):
+    serieName: str
+  
+
+
+class SerieResponse(SerieBase):
+  id: int
+  serieName: str
+
+  model_config = ConfigDict(from_attributes=True)
+
+
+# ==================== SCHOOL CLASS SCHEMAS ====================
+
+
+class SchoolClassBase(BaseModel):
+  className: str
+  level_id: int
+  serie_id: Optional[int] = None
+
+
+class SchoolClassCreate(SchoolClassBase):
+  pass
+
+
+class SchoolClassResponse(SchoolClassBase):
+  id: int
+  level: Optional[LevelResponse] = None
+  serie: Optional[SerieResponse] = None
+
+  model_config = ConfigDict(from_attributes=True)
+
+
+# --- school year Schemas ---
+
+
+class SchoolYearCreate(BaseModel):
+    name: str
+    startYear: int
+    endYear: int
+
+class SchoolYearUpdate(BaseModel):
+    name: Optional[str] = None
+    startYear: Optional[int] = None
+    endYear: Optional[int] = None
+
+class SchoolYearResponse(BaseModel):
+    id: int
+    name: str
+    startYear: int
+    endYear: int
+
+    class Config:
+        from_attributes = True
+
+
+# --- Period Schemas ---
+
+class PeriodCreate(BaseModel):
+    periodName: str
+    schoolYear_id: int
+
+class PeriodUpdate(BaseModel):
+    periodName: Optional[str] = None
+    schoolYear_id: Optional[int] = None
+
+class PeriodResponse(BaseModel):
+    id: int
+    periodName: str
+    schoolYear: SchoolYearResponse  # Nested SchoolYearResponse
+
+    class Config:
+        from_attributes = True
+        
+        
+        
+        
+        
+        
 # Résolution des références circulaires Pydantic si nécessaire
 ParentStudentLinkResponse.model_rebuild()

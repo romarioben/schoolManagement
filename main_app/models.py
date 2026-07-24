@@ -114,3 +114,26 @@ class SchoolClass(Base):
   # Relationships
   level = relationship("Level", back_populates="classes")
   serie = relationship("Serie", back_populates="classes")
+  
+  
+class SchoolYear(Base):
+    __tablename__ = "school_years"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    startYear = Column(Integer, nullable=False)
+    endYear = Column(Integer, nullable=False)
+
+    # Relationship to Period (cascade delete ensures periods are removed if the school year is deleted)
+    periods = relationship("Period", back_populates="schoolYear", cascade="all, delete-orphan")
+
+
+class Period(Base):
+    __tablename__ = "periods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    periodName = Column(String, nullable=False)
+    schoolYear_id = Column(Integer, ForeignKey("school_years.id"), nullable=False)
+
+    # Relationship back to SchoolYear
+    schoolYear = relationship("SchoolYear", back_populates="periods")

@@ -140,3 +140,215 @@ def remove_parent_from_student(db: Session, student_id: int, parent_id: int):
     db.commit()
     db.refresh(student)
     return student
+
+
+def create_level(db: Session, level: schemas.LevelCreate):
+  db_level = models.Level(levelName=level.levelName)
+  db.add(db_level)
+  db.commit()
+  db.refresh(db_level)
+  return db_level
+
+
+def get_levels(db: Session, skip: int = 0, limit: int = 100):
+  return db.query(models.Level).offset(skip).limit(limit).all()
+
+
+def get_level(db: Session, level_id: int):
+  return db.query(models.Level).filter(models.Level.id == level_id).first()
+
+
+def update_level(db: Session, level_id: int, level: schemas.LevelCreate):
+  db_level = get_level(db, level_id)
+  if not db_level:
+    return None
+  db_level.levelName = level.levelName
+  db.commit()
+  db.refresh(db_level)
+  return db_level
+
+
+def delete_level(db: Session, level_id: int):
+  db_level = get_level(db, level_id)
+  if not db_level:
+    return None
+  db.delete(db_level)
+  db.commit()
+  return db_level
+
+
+# ==================== SERIE CRUD ====================
+
+
+def create_serie(db: Session, serie: schemas.SerieCreate):
+  db_serie = models.Serie(serieName=serie.serieName)
+  db.add(db_serie)
+  db.commit()
+  db.refresh(db_serie)
+  return db_serie
+
+
+def get_series(db: Session, skip: int = 0, limit: int = 100):
+  return db.query(models.Serie).offset(skip).limit(limit).all()
+
+
+def get_serie(db: Session, serie_id: int):
+  return db.query(models.Serie).filter(models.Serie.id == serie_id).first()
+
+
+def update_serie(db: Session, serie_id: int, serie: schemas.SerieCreate):
+  db_serie = get_serie(db, serie_id)
+  if not db_serie:
+    return None
+  db_serie.serieName = serie.serieName
+  db.commit()
+  db.refresh(db_serie)
+  return db_serie
+
+
+def delete_serie(db: Session, serie_id: int):
+  db_serie = get_serie(db, serie_id)
+  if not db_serie:
+    return None
+  db.delete(db_serie)
+  db.commit()
+  return db_serie
+
+
+# ==================== SCHOOL CLASS CRUD ====================
+
+
+def create_school_class(db: Session, school_class: schemas.SchoolClassCreate):
+  # Verify Level exists
+  if not get_level(db, school_class.level_id):
+    raise HTTPException(status_code=404, detail="Level not found")
+  # Verify Serie exists if provided
+  if school_class.serie_id and not get_serie(db, school_class.serie_id):
+    raise HTTPException(status_code=404, detail="Serie not found")
+
+  db_class = models.SchoolClass(**school_class.dict())
+  db.add(db_class)
+  db.commit()
+  db.refresh(db_class)
+  return db_class
+
+
+def get_school_classes(db: Session, skip: int = 0, limit: int = 100):
+  return db.query(models.SchoolClass).offset(skip).limit(limit).all()
+
+
+def get_school_class(db: Session, class_id: int):
+  return (
+      db.query(models.SchoolClass)
+      .filter(models.SchoolClass.id == class_id)
+      .first()
+  )
+
+
+def update_school_class(
+    db: Session, class_id: int, school_class: schemas.SchoolClassCreate
+):
+  db_class = get_school_class(db, class_id)
+  if not db_class:
+    return None
+
+  if not get_level(db, school_class.level_id):
+    raise HTTPException(status_code=404, detail="Level not found")
+  if school_class.serie_id and not get_serie(db, school_class.serie_id):
+    raise HTTPException(status_code=404, detail="Serie not found")
+
+  for key, value in school_class.dict().items():
+    setattr(db_class, key, value)
+
+  db.commit()
+  db.refresh(db_class)
+  return db_class
+
+
+def delete_school_class(db: Session, class_id: int):
+  db_class = get_school_class(db, class_id)
+  if not db_class:
+    return None
+  db.delete(db_class)
+  db.commit()
+  return db_class
+
+
+def create_school_year(db: Session, name: str, startYear: int, endYear: int):
+    db_school_year = models.SchoolYear(name=name, startYear=startYear, endYear=endYear)
+    db.add(db_school_year)
+    db.commit()
+    db.refresh(db_school_year)
+    return db_school_year
+
+def get_school_year(db: Session, school_year_id: int):
+    return db.query(models.SchoolYear).filter(models.SchoolYear.id == school_year_id).first()
+
+def get_school_years(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.SchoolYear).offset(skip).limit(limit).all()
+
+def update_school_year(db: Session, school_year_id: int, name: str = None, startYear: int = None, endYear: int = None):
+    db_school_year = get_school_year(db, school_year_id)
+    if not db_school_year:
+        return None
+    
+    if name is not None:
+        db_school_year.name = name
+    if startYear is not None:
+        db_school_year.startYear = startYear
+    if endYear is not None:
+        db_school_year.endYear = endYear
+        
+    db.commit()
+    db.refresh(db_school_year)
+    return db_school_year
+
+def delete_school_year(db: Session, school_year_id: int):
+    db_school_year = get_school_year(db, school_year_id)
+    if db_school_year:
+        db.delete(db_school_year)
+        db.commit()
+        return True
+    return False
+
+
+# --- Period CRUD Operations ---
+
+def create_period(db: Session, periodName: str, schoolYear_id: int):
+    db_period = models.Period(periodName=periodName, schoolYear_id=schoolYear_id)
+    db.add(db_period)
+    db.commit()
+    db.refresh(db_period)
+    return db_period
+
+def get_period(db: Session, period_id: int):
+    return db.query(models.Period).filter(models.Period.id == period_id).first()
+
+def get_periods(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Period).offset(skip).limit(limit).all()
+
+def get_periods_by_school_year(db: Session, schoolYear_id: int):
+    return db.query(models.Period).filter(models.Period.schoolYear_id == schoolYear_id).all()
+
+def update_period(db: Session, period_id: int, periodName: str = None, schoolYear_id: int = None):
+    db_period = get_period(db, period_id)
+    if not db_period:
+        return None
+        
+    if periodName is not None:
+        db_period.periodName = periodName
+    if schoolYear_id is not None:
+        db_period.schoolYear_id = schoolYear_id
+        
+    db.commit()
+    db.refresh(db_period)
+    return db_period
+
+def delete_period(db: Session, period_id: int):
+    db_period = get_period(db, period_id)
+    if db_period:
+        db.delete(db_period)
+        db.commit()
+        return True
+    return False
+  

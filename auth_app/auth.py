@@ -74,3 +74,18 @@ def get_current_active_user(
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+def require_admin_or_superadmin(
+    current_user: dict = Depends(get_current_user),
+):
+  """Restricts access to users with 'admin' or 'superadmin' roles."""
+  allowed_roles = ["admin", "superadmin"]
+  if current_user.role not in allowed_roles:
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=(
+            "Operation not permitted. Admin or Superadmin privileges required."
+        ),
+    )
+  return current_user
