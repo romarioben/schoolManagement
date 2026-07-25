@@ -114,7 +114,8 @@ class SchoolClass(Base):
   # Relationships
   level = relationship("Level", back_populates="classes")
   serie = relationship("Serie", back_populates="classes")
-  
+  subject_associations = relationship("ClassSubjectAssociation", back_populates="school_class", cascade="all, delete-orphan")
+
   
 class SchoolYear(Base):
     __tablename__ = "school_years"
@@ -137,3 +138,42 @@ class Period(Base):
 
     # Relationship back to SchoolYear
     schoolYear = relationship("SchoolYear", back_populates="periods")
+
+    # Relationship to ClassSubjectAssociation
+    class_subject_associations = relationship("ClassSubjectAssociation", back_populates="period", cascade="all, delete-orphan")
+    
+
+
+
+class DomaineEnum(str, enum.Enum):
+    LITTERATURE = "litterature"
+    SCIENCE = "science"
+    RELIGION = "religion"
+    OTHER = "autre"
+
+
+class ClassSubjectAssociation(Base):
+    __tablename__ = "class_subject_association"
+
+    school_class_id = Column(Integer, ForeignKey("school_classes.id", ondelete="CASCADE"), primary_key=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), primary_key=True)
+    period_id = Column(Integer, ForeignKey("periods.id", ondelete="CASCADE"), primary_key=True)
+    
+    # Extra fields for the many-to-many relationship itself
+    hours_per_week = Column(Integer, nullable=True, default=3)
+    coefficient = Column(Integer, nullable=False, default=1)
+    # Relationships back to parents
+    school_class = relationship("SchoolClass", back_populates="subject_associations")
+    subject = relationship("Subject", back_populates="class_associations")
+    period = relationship("Period", back_populates="class_subject_associations")
+
+
+class Subject(Base):
+    __tablename__ = "subjects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    subjectName = Column(String, unique=True, index=True, nullable=False)
+    #contractName = Column(String, nullable=True)
+    domaine : Mapped[DomaineEnum] = mapped_column(Enum(DomaineEnum), nullable=False, default=DomaineEnum.OTHER)
+
+    class_associations = relationship("ClassSubjectAssociation", back_populates="subject", cascade="all, delete-orphan")

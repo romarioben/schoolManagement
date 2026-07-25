@@ -326,7 +326,73 @@ def delete_period(period_id: int, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=404, detail="Period not found")
     return None
+  
+  
+# --- Subject Endpoints ---
+subject_router = APIRouter(tags=["Subjects"], dependencies=[Depends(require_admin_or_superadmin)])
 
+@subject_router.post("/subjects/", response_model=schemas.SubjectResponse, status_code=status.HTTP_201_CREATED)
+def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db)):
+    return crud.create_subject(db=db, subject=subject)
+
+@subject_router.get("/subjects/", response_model=List[schemas.SubjectResponse])
+def read_subjects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_subjects(db, skip=skip, limit=limit)
+
+@subject_router.get("/subjects/{subject_id}", response_model=schemas.SubjectResponse)
+def read_subject(subject_id: int, db: Session = Depends(get_db)):
+    db_subject = crud.get_subject(db, subject_id=subject_id)
+    if not db_subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    return db_subject
+
+@subject_router.put("/subjects/{subject_id}", response_model=schemas.SubjectResponse)
+def update_subject(subject_id: int, subject: schemas.SubjectUpdate, db: Session = Depends(get_db)):
+    db_subject = crud.update_subject(db, subject_id=subject_id, subject_update=subject)
+    if not db_subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    return db_subject
+
+@subject_router.delete("/subjects/{subject_id}", response_model=schemas.SubjectResponse)
+def delete_subject(subject_id: int, db: Session = Depends(get_db)):
+    db_subject = crud.delete_subject(db, subject_id=subject_id)
+    if not db_subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    return db_subject
+
+
+
+# --- Relationship (Association Class) GET and PUT Routes ---
+
+subject_class_assoc_router = APIRouter(tags=["Class-Subject Associations"], dependencies=[Depends(require_admin_or_superadmin)])
+@subject_class_assoc_router.post("/class-subjects/", response_model=schemas.ClassSubjectAssociationResponse, status_code=status.HTTP_201_CREATED)
+def link_subject_to_class(assoc: schemas.ClassSubjectAssociationCreate, db: Session = Depends(get_db)):
+    db_class = crud.get_school_class(db, assoc.school_class_id)
+    db_subject = crud.get_subject(db, assoc.subject_id)
+    if not db_class or not db_subject:
+        raise HTTPException(status_code=404, detail="School Class or Subject not found")
+    return crud.create_class_subject_assoc(db=db, assoc=assoc)
+
+@subject_class_assoc_router.get("/classes/{class_id}/subjects/{subject_id}/periods/{period_id}", response_model=schemas.ClassSubjectAssociationResponse)
+def get_class_subject_relationship(class_id: int, subject_id: int, period_id: int, db: Session = Depends(get_db)):
+    db_assoc = crud.get_class_subject_assoc(db, class_id=class_id, subject_id=subject_id, period_id=period_id)
+    if not db_assoc:
+        raise HTTPException(status_code=404, detail="Relationship between Class and Subject not found")
+    return db_assoc
+
+@subject_class_assoc_router.put("/classes/{class_id}/subjects/{subject_id}/periods/{period_id}", response_model=schemas.ClassSubjectAssociationResponse)
+def update_class_subject_relationship(class_id: int, subject_id: int, period_id: int, assoc_update: schemas.ClassSubjectAssociationUpdate, db: Session = Depends(get_db)):
+    db_assoc = crud.update_class_subject_assoc(db, class_id=class_id, subject_id=subject_id, period_id=period_id, assoc_update=assoc_update)
+    if not db_assoc:
+        raise HTTPException(status_code=404, detail="Relationship between Class and Subject not found")
+    return db_assoc
+
+@subject_class_assoc_router.delete("/classes/{class_id}/subjects/{subject_id}/periods/{period_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_class_subject_relationship(class_id: int, subject_id: int, period_id: int, db: Session = Depends(get_db)):
+    db_assoc = crud.delete_class_subject_assoc(db, class_id=class_id, subject_id=subject_id, period_id=period_id)
+    if not db_assoc:
+        raise HTTPException(status_code=404, detail="Relationship between Class and Subject not found")
+    return db_assoc
 
 
 main_router = APIRouter()
@@ -338,4 +404,6 @@ main_router.include_router(level_router)
 main_router.include_router(class_router)
 main_router.include_router(school_year_router) 
 main_router.include_router(period_router)
+main_router.include_router(subject_router)
+main_router.include_router(subject_class_assoc_router)
  # For School Year routes

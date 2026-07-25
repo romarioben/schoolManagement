@@ -351,4 +351,113 @@ def delete_period(db: Session, period_id: int):
         db.commit()
         return True
     return False
+
+
+
+def get_subject(db: Session, subject_id: int):
+    return db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+
+def get_subjects(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Subject).offset(skip).limit(limit).all()
+
+def create_subject(db: Session, subject: schemas.SubjectCreate):
+    db_subject = models.Subject(subjectName=subject.subjectName, domaine=subject.domaine)
+    db.add(db_subject)
+    db.commit()
+    db.refresh(db_subject)
+    return db_subject
+
+def update_subject(db: Session, subject_id: int, subject_update: schemas.SubjectUpdate):
+    db_subject = get_subject(db, subject_id)
+    if not db_subject:
+        return None
+    for key, value in subject_update.model_dump(exclude_unset=True).items():
+        setattr(db_subject, key, value)
+    db.commit()
+    db.refresh(db_subject)
+    return db_subject
+
+def delete_subject(db: Session, subject_id: int):
+    db_subject = get_subject(db, subject_id)
+    if not db_subject:
+        return None
+    db.delete(db_subject)
+    db.commit()
+    return db_subject
+
+
+# --- SchoolClass CRUD ---
+def get_school_class(db: Session, class_id: int):
+    return db.query(models.SchoolClass).filter(models.SchoolClass.id == class_id).first()
+
+def get_school_classes(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.SchoolClass).offset(skip).limit(limit).all()
+
+def create_school_class(db: Session, school_class: schemas.SchoolClassCreate):
+    db_class = models.SchoolClass(name=school_class.name)
+    db.add(db_class)
+    db.commit()
+    db.refresh(db_class)
+    return db_class
+
+def update_school_class(db: Session, class_id: int, class_update: schemas.SchoolClassUpdate):
+    db_class = get_school_class(db, class_id)
+    if not db_class:
+        return None
+    for key, value in class_update.model_dump(exclude_unset=True).items():
+        setattr(db_class, key, value)
+    db.commit()
+    db.refresh(db_class)
+    return db_class
+
+def delete_school_class(db: Session, class_id: int):
+    db_class = get_school_class(db, class_id)
+    if not db_class:
+        return None
+    db.delete(db_class)
+    db.commit()
+    return db_class
+
+
+# --- Relationship CRUD (Association Class) ---
+def get_class_subject_assoc(db: Session, class_id: int, subject_id: int, period_id: int):
+    return db.query(models.ClassSubjectAssociation).filter(
+        models.ClassSubjectAssociation.school_class_id == class_id,
+        models.ClassSubjectAssociation.subject_id == subject_id,
+        models.ClassSubjectAssociation.period_id == period_id
+    ).first()
+
+def create_class_subject_assoc(db: Session, assoc: schemas.ClassSubjectAssociationCreate):
+    db_assoc = models.ClassSubjectAssociation(
+        school_class_id=assoc.school_class_id,
+        subject_id=assoc.subject_id,
+        period_id=assoc.period_id,
+        hours_per_week=assoc.hours_per_week,
+        coefficient=assoc.coefficient,
+        #room=assoc.room
+    )
+    db.add(db_assoc)
+    db.commit()
+    db.refresh(db_assoc)
+    return db_assoc
+
+def update_class_subject_assoc(db: Session, class_id: int, subject_id: int, period_id: int, assoc_update: schemas.ClassSubjectAssociationUpdate):
+    db_assoc = get_class_subject_assoc(db, class_id, subject_id, period_id)
+    if not db_assoc:
+        return None
+    for key, value in assoc_update.model_dump(exclude_unset=True).items():
+        setattr(db_assoc, key, value)
+    db.commit()
+    db.refresh(db_assoc)
+    return db_assoc
+
+
+def delete_class_subject_assoc(db: Session, class_id: int, subject_id: int, period_id: int):
+    db_assoc = get_class_subject_assoc(db, class_id, subject_id, period_id)
+    if not db_assoc:
+        return None
+    db.delete(db_assoc)
+    db.commit()
+    return db_assoc
+  
   

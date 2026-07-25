@@ -3,6 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from auth_app.schemas import UserCreate, UserOut
+from main_app.models import DomaineEnum
 
 # --- Schémas Parent ---
 class ParentBase(UserOut):
@@ -193,9 +194,65 @@ class PeriodResponse(BaseModel):
         from_attributes = True
         
         
+
+class SubjectBase(BaseModel):
+    subjectName: str
+    domaine: DomaineEnum
+
+class SubjectCreate(BaseModel):
+    subjectName: str
+    domaine: DomaineEnum
+    
+class SubjectUpdate(BaseModel):
+    subjectName: Optional[str] = None
+    domaine: Optional[DomaineEnum] = None
+
+class SubjectResponse(BaseModel):
+    id: int
+    subjectName: str
+    domaine: DomaineEnum
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+# --- Association Schemas (Many-to-Many Class) ---
+class ClassSubjectAssociationBase(BaseModel):
+    hours_per_week: Optional[int] = None
+    coefficient: Optional[int] = None
+    
+class ClassSubjectAssociationCreate(ClassSubjectAssociationBase):
+    school_class_id: int
+    subject_id: int
+    period_id: int
+    coefficient: int
+
+class ClassSubjectAssociationUpdate(BaseModel):
+    hours_per_week: Optional[int] = None
+    coefficient: Optional[int] = None
+   
+class ClassSubjectAssociationResponse(ClassSubjectAssociationBase):
+    school_class_id: int
+    subject_id: int
+    period_id: int
+    coefficient: int
+    school_class: SchoolClassResponse
+    subject: SubjectResponse
+    period: PeriodResponse
+
+    model_config = ConfigDict(from_attributes=True)
+        
+        
         
         
         
         
 # Résolution des références circulaires Pydantic si nécessaire
 ParentStudentLinkResponse.model_rebuild()
+ParentWithStudentsResponse.model_rebuild()
+StudentResponse.model_rebuild()
+PeriodResponse.model_rebuild()
+SchoolClassResponse.model_rebuild()
+SubjectResponse.model_rebuild()
+ClassSubjectAssociationResponse.model_rebuild()
+StudentResponse0.model_rebuild()
