@@ -7,28 +7,32 @@
 - main_app/: Core application
 - routing/: API routing logic
 
-## Requirements
-Install dependencies with:
-```bash
-pip install -r requirements.txt
-```
-
 ## How to Run
-1. Activate virtual environment:
+1. Customize environment variables:
+```bash
+cp .env.example .env
+# Then edit .env to set your configuration values
+``` 
+2. Install virtual environment (if not already created):
+```bash
+python -m venv venv
+``` 
+3. Activate virtual environment:
 ```bash
 source venv/bin/activate
 ``` 
-2. Apply database migrations:
+4. Install dependencies:
+```bash
+pip install -r requirements.txt
+``` 
+5. Apply database migrations:
 ```bash
 alembic upgrade head
 ``` 
-3. Run the application:
+6. Run the application:
 ```bash
 fastapi dev
 ``` 
-4. Update environment variables:
-- Copy `.env.example` to `.env`
-- Customize configuration values as needed
 
 Environment variables are loaded from `.env` file. Alembic automatically handles database schema migrations when using `alembic upgrade head`.
 
