@@ -1,5 +1,7 @@
 # Shool Management System
 
+The API provides RESTful endpoints for managing school entities such as students, parents, classes, teachers, assignments, and academic periods. Each route supports standard HTTP methods (GET, POST, PUT, DELETE) to perform CRUD operations, enabling comprehensive administration of the school management system.
+
 ## Project Structure
 - alembic/: Database migration scripts
 - auth_app/: Authentication module (Python files)
