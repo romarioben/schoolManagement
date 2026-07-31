@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from . import models, schemas, crud
 from config.database import get_db
@@ -380,6 +380,25 @@ def get_class_subject_relationship(class_id: int, subject_id: int, period_id: in
         raise HTTPException(status_code=404, detail="Relationship between Class and Subject not found")
     return db_assoc
 
+@subject_class_assoc_router.get("/classes/{class_id}/subjects/{period_id}", response_model=List[schemas.ClassSubjectAssociationResponse])
+def get_a_class_subjects(class_id : int, period_id: int, db: Session = Depends(get_db)):
+    school_class = crud.get_school_class(db, class_id=class_id)
+    if not school_class:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"La classe est introuvable."
+        )
+        
+    period = crud.get_period(db, period_id)
+    if not period:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"La période est introuvable."
+        )
+        
+    
+    return crud.get_a_class_subjects(db, class_id, period_id)
+
 @subject_class_assoc_router.put("/classes/{class_id}/subjects/{subject_id}/periods/{period_id}", response_model=schemas.ClassSubjectAssociationResponse)
 def update_class_subject_relationship(class_id: int, subject_id: int, period_id: int, assoc_update: schemas.ClassSubjectAssociationUpdate, db: Session = Depends(get_db)):
     db_assoc = crud.update_class_subject_assoc(db, class_id=class_id, subject_id=subject_id, period_id=period_id, assoc_update=assoc_update)
@@ -395,6 +414,75 @@ def delete_class_subject_relationship(class_id: int, subject_id: int, period_id:
     return db_assoc
 
 
+teacher_router = APIRouter(tags=["Teachers"], dependencies=[Depends(require_admin_or_superadmin)])
+
+@teacher_router.post("/teachers/", response_model=schemas.TeacherResponse, status_code=status.HTTP_201_CREATED)
+def create_teacher(teacher: schemas.TeacherCreate, db: Session = Depends(get_db)):
+    return crud.create_teacher(db=db, teacher=teacher)
+
+@teacher_router.get("/teachers/", response_model=List[schemas.TeacherResponse])
+def read_teachers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_teachers(db, skip=skip, limit=limit)
+
+@teacher_router.get("/teachers/{teacher_id}", response_model=schemas.TeacherResponse)
+def read_teacher(teacher_id: int, db: Session = Depends(get_db)):
+    db_teacher = crud.get_teacher(db, teacher_id=teacher_id)
+    if not db_teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    return db_teacher
+
+@teacher_router.put("/teachers/{teacher_id}", response_model=schemas.TeacherResponse)
+def update_teacher(teacher_id: int, teacher: schemas.TeacherCreate, db: Session = Depends(get_db)):
+    db_teacher = crud.update_teacher(db, teacher_id=teacher_id, teacher=teacher)
+    if not db_teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    return db_teacher
+
+@teacher_router.delete("/teachers/{teacher_id}", response_model=schemas.TeacherResponse)
+def delete_teacher(teacher_id: int, db: Session = Depends(get_db)):
+    db_teacher = crud.delete_teacher(db, teacher_id=teacher_id)
+    if not db_teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    return db_teacher
+
+@teacher_router.post("/teachers/{teacher_id}/subjects/{subject_id}", response_model=schemas.TeacherResponse)
+def add_subject_to_teacher(teacher_id: int, subject_id: int, db: Session = Depends(get_db)):
+    db_teacher = crud.assign_subject_to_teacher(db, teacher_id=teacher_id, subject_id=subject_id)
+    if not db_teacher:
+        raise HTTPException(status_code=404, detail="Teacher or Subject not found")
+    return db_teacher
+
+@teacher_router.delete("/teachers/{teacher_id}/subjects/{subject_id}", response_model=schemas.TeacherResponse)
+def remove_subject_from_teacher(teacher_id: int, subject_id: int, db: Session = Depends(get_db)):
+    db_teacher = crud.remove_subject_from_teacher(db, teacher_id=teacher_id, subject_id=subject_id)
+    if not db_teacher:
+        raise HTTPException(status_code=404, detail="Teacher or Subject not found")
+    return db_teacher  
+
+
+
+teacher_class_subject_period_router = APIRouter(tags=["Teacher-Class-Subject-Period Associations"], dependencies=[Depends(require_admin_or_superadmin)])
+@teacher_class_subject_period_router.post("/teacher-class-subject-period/", response_model=schemas.TeacherClassSubjectPeriodResponse, status_code=status.HTTP_201_CREATED)
+def create_teacher_class_subject_period(assoc: schemas.TeacherClassSubjectPeriodCreate, db: Session = Depends(get_db)):
+    db_teacher = crud.get_teacher(db, assoc.teacher_id)
+    db_class = crud.get_school_class(db, assoc.school_class_id)
+    db_subject = crud.get_subject(db, assoc.subject_id)
+    db_period = crud.get_period(db, assoc.period_id)
+    
+    if not all([db_teacher, db_class, db_subject, db_period]):
+        raise HTTPException(status_code=404, detail="Teacher, Class, Subject or Period not found")
+    
+    return crud.create_teacher_class_subject_period(db=db, assoc=assoc)
+
+@teacher_class_subject_period_router.get("/teacher-class-subject-period/", response_model=List[schemas.TeacherClassSubjectPeriodResponse])
+def get_all_teacher_class_subject_period(teacher_id: Optional[int] | None = None, school_class_id: Optional[int] | None=None, subject_id: Optional[int] | None=None, period_id: Optional[int] | None=None, db: Session=Depends(get_db)):
+    return crud.get_teacher_class_subject_periods(db,  teacher_id, school_class_id, subject_id, period_id)
+
+
+@teacher_class_subject_period_router.delete("/teacher-class-subject-period/teacher/{teacher_id}/school-class/{school_class_id}/subject/{subject_id}/period/{period_id}", response_model=schemas.TeacherClassSubjectPeriodResponse)
+def delete_teacher_class_subject_period(teacher_id: int, school_class_id: int, subject_id: int, period_id: int, db: Session = Depends(get_db)):
+    return crud.delete_teacher_class_subject_period(db=db, teacher_id=teacher_id, school_class_id=school_class_id, subject_id=subject_id, period_id=period_id)
+
 main_router = APIRouter()
 main_router.include_router(student_router)
 main_router.include_router(parent_router)
@@ -406,4 +494,6 @@ main_router.include_router(school_year_router)
 main_router.include_router(period_router)
 main_router.include_router(subject_router)
 main_router.include_router(subject_class_assoc_router)
+main_router.include_router(teacher_router)
+main_router.include_router(teacher_class_subject_period_router)
  # For School Year routes

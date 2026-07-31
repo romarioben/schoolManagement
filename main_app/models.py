@@ -28,6 +28,7 @@ from typing import Optional
 from sqlalchemy import Column, Date, Enum, Integer, String, Table, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from config.database import Base
+from sqlalchemy.ext.associationproxy import association_proxy
 
 from auth_app.models import User  # noqa: F401  -- imports every model so metadata is complete
 
@@ -103,18 +104,37 @@ class Serie(Base):
   classes = relationship("SchoolClass", back_populates="serie")
 
 
+class ClassSubjectAssociation(Base):
+    __tablename__ = "class_subject_association"
+
+    school_class_id = Column(Integer, ForeignKey("school_classes.id", ondelete="CASCADE"), primary_key=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), primary_key=True)
+    period_id = Column(Integer, ForeignKey("periods.id", ondelete="CASCADE"), primary_key=True)
+    
+    # Extra fields for the many-to-many relationship itself
+    hours_per_week = Column(Integer, nullable=True, default=3)
+    coefficient = Column(Integer, nullable=False, default=1)
+    # Relationships back to parents
+    school_class = relationship("SchoolClass", back_populates="subject_associations")
+    subject = relationship("Subject", back_populates="class_associations")
+    period = relationship("Period", back_populates="class_subject_associations")
+
+
+
+
 class SchoolClass(Base):
-  __tablename__ = "school_classes"
+    __tablename__ = "school_classes"
 
-  id = Column(Integer, primary_key=True, index=True)
-  className = Column(String, nullable=False)
-  level_id = Column(Integer, ForeignKey("levels.id"), nullable=False)
-  serie_id = Column(Integer, ForeignKey("series.id"), nullable=True)
+    id = Column(Integer, primary_key=True, index=True)
+    className = Column(String, nullable=False)
+    level_id = Column(Integer, ForeignKey("levels.id"), nullable=False)
+    serie_id = Column(Integer, ForeignKey("series.id"), nullable=True)
 
-  # Relationships
-  level = relationship("Level", back_populates="classes")
-  serie = relationship("Serie", back_populates="classes")
-  subject_associations = relationship("ClassSubjectAssociation", back_populates="school_class", cascade="all, delete-orphan")
+    # Relationships
+    level = relationship("Level", back_populates="classes")
+    serie = relationship("Serie", back_populates="classes")
+    subject_associations = relationship("ClassSubjectAssociation", back_populates="school_class", cascade="all, delete-orphan")
+    subjects = association_proxy("subject_associations", "subject")
 
   
 class SchoolYear(Base):
@@ -152,20 +172,7 @@ class DomaineEnum(str, enum.Enum):
     OTHER = "autre"
 
 
-class ClassSubjectAssociation(Base):
-    __tablename__ = "class_subject_association"
 
-    school_class_id = Column(Integer, ForeignKey("school_classes.id", ondelete="CASCADE"), primary_key=True)
-    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), primary_key=True)
-    period_id = Column(Integer, ForeignKey("periods.id", ondelete="CASCADE"), primary_key=True)
-    
-    # Extra fields for the many-to-many relationship itself
-    hours_per_week = Column(Integer, nullable=True, default=3)
-    coefficient = Column(Integer, nullable=False, default=1)
-    # Relationships back to parents
-    school_class = relationship("SchoolClass", back_populates="subject_associations")
-    subject = relationship("Subject", back_populates="class_associations")
-    period = relationship("Period", back_populates="class_subject_associations")
 
 
 class Subject(Base):
@@ -177,3 +184,45 @@ class Subject(Base):
     domaine : Mapped[DomaineEnum] = mapped_column(Enum(DomaineEnum), nullable=False, default=DomaineEnum.OTHER)
 
     class_associations = relationship("ClassSubjectAssociation", back_populates="subject", cascade="all, delete-orphan")
+    teachers = relationship("Teacher", secondary="teacher_subject", back_populates="subjects")
+    school_classes = association_proxy("class_associations", "school_class")
+    
+    
+teacher_subject = Table(
+    "teacher_subject",
+    Base.metadata,
+    Column("teacher_id", Integer, ForeignKey("teachers.id"), primary_key=True),
+    Column("subject_id", Integer, ForeignKey("subjects.id"), primary_key=True),
+)
+
+
+class Teacher(User):
+    __tablename__ = "teachers"
+
+    id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    teacherMatricule: Mapped[str] = mapped_column(String(30), unique=True, nullable=True)
+    
+    # Many-to-Many: Teacher <-> Subject
+    subjects = relationship("Subject", secondary=teacher_subject, back_populates="teachers")
+    
+    # Relationship: Teacher -> Period
+    #periods = relationship("Period", back_populates="teacher")
+
+    __mapper_args__ = {
+        "polymorphic_identity": "teacher",
+    }
+    
+    
+class TeacherClassSubjectPeriod(Base):
+    __tablename__ = "teacher_class_subject_period"
+
+    teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="CASCADE"), primary_key=True)
+    school_class_id = Column(Integer, ForeignKey("school_classes.id", ondelete="CASCADE"), primary_key=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), primary_key=True)
+    period_id = Column(Integer, ForeignKey("periods.id", ondelete="CASCADE"), primary_key=True)
+
+    # Relationships
+    teacher = relationship("Teacher", backref="teacher_class_subject_periods")
+    school_class = relationship("SchoolClass", backref="teacher_class_subject_periods")
+    subject = relationship("Subject", backref="teacher_class_subject_periods")
+    period = relationship("Period", backref="teacher_class_subject_periods")

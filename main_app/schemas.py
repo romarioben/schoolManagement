@@ -242,11 +242,40 @@ class ClassSubjectAssociationResponse(ClassSubjectAssociationBase):
 
     model_config = ConfigDict(from_attributes=True)
         
+
+
+
+class TeacherCreate(UserCreate):
+    teacherMatricule: Optional[str] = None  # Matricule de l'enseignant
+    role: str = "teacher"  # Le rôle est fixé à "teacher" pour tous les enseignants
+
+class TeacherResponse(UserOut):
+    id: int
+    teacherMatricule: Optional[str] = None
+    subjects: List[SubjectResponse] = []
+
+    class Config:
+        from_attributes = True
         
+class TeacherClassSubjectPeriodCreate(BaseModel):
+    teacher_id: int
+    school_class_id: int
+    subject_id: int
+    period_id: int
         
-        
-        
-        
+class TeacherClassSubjectPeriodResponse(BaseModel):
+    teacher_id: int
+    school_class_id: int
+    subject_id: int
+    period_id: int
+    teacher: TeacherResponse
+    school_class: SchoolClassResponse
+    subject: SubjectResponse
+    period: PeriodResponse
+
+    model_config = ConfigDict(from_attributes=True)
+
+  
 # Résolution des références circulaires Pydantic si nécessaire
 ParentStudentLinkResponse.model_rebuild()
 ParentWithStudentsResponse.model_rebuild()

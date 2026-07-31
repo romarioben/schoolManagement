@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 
@@ -53,6 +55,9 @@ def create_parent(db: Session, parent: schemas.ParentCreate):
     existing_user = db.query(User).filter(User.email == parent.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+    existing_username = db.query(User).filter(User.username == parent.username).first()
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username already taken")
     
     
     db_parent = models.Parent(
@@ -426,6 +431,7 @@ def get_class_subject_assoc(db: Session, class_id: int, subject_id: int, period_
         models.ClassSubjectAssociation.subject_id == subject_id,
         models.ClassSubjectAssociation.period_id == period_id
     ).first()
+    
 
 def create_class_subject_assoc(db: Session, assoc: schemas.ClassSubjectAssociationCreate):
     db_assoc = models.ClassSubjectAssociation(
@@ -440,6 +446,10 @@ def create_class_subject_assoc(db: Session, assoc: schemas.ClassSubjectAssociati
     db.commit()
     db.refresh(db_assoc)
     return db_assoc
+
+def get_a_class_subjects(db: Session, class_id: int, period_id: int):
+    associations = db.query(models.ClassSubjectAssociation).filter(models.ClassSubjectAssociation.school_class_id==class_id and models.ClassSubjectAssociation.period_id == period_id)
+    return associations.all()
 
 def update_class_subject_assoc(db: Session, class_id: int, subject_id: int, period_id: int, assoc_update: schemas.ClassSubjectAssociationUpdate):
     db_assoc = get_class_subject_assoc(db, class_id, subject_id, period_id)
@@ -459,5 +469,98 @@ def delete_class_subject_assoc(db: Session, class_id: int, subject_id: int, peri
     db.delete(db_assoc)
     db.commit()
     return db_assoc
+
+
+
+def get_teacher(db: Session, teacher_id: int):
+    return db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
+
+def get_teachers(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Teacher).offset(skip).limit(limit).all()
+
+def create_teacher(db: Session, teacher: schemas.TeacherCreate):
+    existing_user = db.query(models.User).filter(models.User.email == teacher.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    existing_username = db.query(models.User).filter(models.User.username == teacher.username).first()
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    
+    db_teacher = models.Teacher(
+        username=teacher.username,
+        email=teacher.email,
+        hashed_password=hash_password(teacher.password),
+        role="teacher",
+        surname=teacher.surname,
+        firstname=teacher.firstname,
+        phone_number=teacher.phone_number,
+        teacherMatricule=teacher.teacherMatricule
+    )
+    db.add(db_teacher)
+    db.commit()
+    db.refresh(db_teacher)
+    return db_teacher
+
+def assign_subject_to_teacher(db: Session, teacher_id: int, subject_id: int):
+    teacher = get_teacher(db, teacher_id)
+    subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+    if teacher and subject:
+        if subject not in teacher.subjects:
+            teacher.subjects.append(subject)
+            db.commit()
+            db.refresh(teacher)
+        else:
+            raise HTTPException(status_code=400, detail="Subject already assigned to teacher")
+    else:
+        raise HTTPException(status_code=404, detail="Teacher or Subject not found")
+    return teacher
+
+def remove_subject_from_teacher(db: Session, teacher_id: int, subject_id: int):
+    teacher = get_teacher(db, teacher_id)
+    subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+    if teacher and subject:
+        if subject in teacher.subjects:
+            teacher.subjects.remove(subject)
+            db.commit()
+            db.refresh(teacher)
+        else:
+            raise HTTPException(status_code=400, detail="Subject not assigned to teacher")
+    else:
+        raise HTTPException(status_code=404, detail="Teacher or Subject not found")
+    return teacher
   
   
+def create_teacher_class_subject_period(db: Session, assoc: schemas.TeacherClassSubjectPeriodCreate):
+    db_assoc = models.TeacherClassSubjectPeriod(
+        teacher_id=assoc.teacher_id,
+        school_class_id=assoc.school_class_id,
+        subject_id=assoc.subject_id,
+        period_id=assoc.period_id
+    )
+    db.add(db_assoc)
+    db.commit()
+    db.refresh(db_assoc)
+    return db_assoc
+
+def get_teacher_class_subject_periods(db: Session, teacher_id: Optional[int]=None, school_class_id: Optional[int]=None, subject_id: Optional[int]=None, period_id: Optional[int]=None):
+    return db.query(models.TeacherClassSubjectPeriod).filter(
+        (models.TeacherClassSubjectPeriod.teacher_id == teacher_id if teacher_id is not None else True) &
+        (models.TeacherClassSubjectPeriod.school_class_id == school_class_id if school_class_id is not None else True) &
+        (models.TeacherClassSubjectPeriod.subject_id == subject_id if subject_id is not None else True) &
+        (models.TeacherClassSubjectPeriod.period_id == period_id if period_id is not None else True)
+    ).all()
+
+def delete_teacher_class_subject_period(db: Session, teacher_id: int, school_class_id: int, subject_id: int, period_id: int):
+    db_assoc = db.query(models.TeacherClassSubjectPeriod).filter_by(
+        teacher_id=teacher_id,
+        school_class_id=school_class_id,
+        subject_id=subject_id,
+        period_id=period_id
+    ).first()
+    
+    if not db_assoc:
+        return None
+    
+    db.delete(db_assoc)
+    db.commit()
+    return db_assoc
