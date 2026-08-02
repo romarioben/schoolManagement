@@ -564,3 +564,101 @@ def delete_teacher_class_subject_period(db: Session, teacher_id: int, school_cla
     db.delete(db_assoc)
     db.commit()
     return db_assoc
+
+def get_admin(db: Session, admin_id: int):
+    return db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+
+def get_admins(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Admin).offset(skip).limit(limit).all()
+
+def create_admin(db: Session, admin: schemas.AdminCreate):
+    existing_user = db.query(models.User).filter(models.User.email == admin.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    existing_username = db.query(models.User).filter(models.User.username == admin.username).first()
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username already taken")
+
+    db_admin = models.Admin(
+        username=admin.username,
+        email=admin.email,
+        hashed_password=hash_password(admin.password),
+        role="admin",
+        surname=admin.surname,
+        firstname=admin.firstname,
+        phone_number=admin.phone_number,
+        teacherMatricule=admin.teacherMatricule,
+        poste=admin.poste
+    )
+    db.add(db_admin)
+    db.commit()
+    db.refresh(db_admin)
+    return db_admin
+
+def update_admin(db: Session, admin_id: int, admin_update: schemas.AdminCreate):
+    db_admin = get_admin(db, admin_id)
+    if not db_admin:
+        return None
+    for key, value in admin_update.model_dump(exclude_unset=True).items():
+        setattr(db_admin, key, value)
+    db.commit()
+    db.refresh(db_admin)
+    return db_admin
+
+def delete_admin(db: Session, admin_id: int):
+    db_admin = get_admin(db, admin_id)
+    if not db_admin:
+        return None
+    db.delete(db_admin)
+    db.commit()
+    return db_admin
+
+
+def get_superAdmin(db: Session, superAdmin_id: int):
+    return db.query(models.SuperAdmin).filter(models.SuperAdmin.id == superAdmin_id).first()
+
+def get_superAdmins(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.SuperAdmin).offset(skip).limit(limit).all()
+
+def create_superAdmin(db: Session, superAdmin: schemas.SuperAdminCreate):
+    existing_user = db.query(models.User).filter(models.User.email == superAdmin.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    existing_username = db.query(models.User).filter(models.User.username == superAdmin.username).first()
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    
+    db_superAdmin = models.SuperAdmin(
+        username=superAdmin.username,
+        email=superAdmin.email,
+        hashed_password=hash_password(superAdmin.password),
+        role="superadmin",
+        surname=superAdmin.surname,
+        firstname=superAdmin    .firstname,
+        phone_number=superAdmin.phone_number,
+        teacherMatricule=superAdmin.teacherMatricule,
+        poste=superAdmin.poste
+    )
+    db.add(db_superAdmin)
+    db.commit()
+    db.refresh(db_superAdmin)
+    return db_superAdmin
+
+def update_superAdmin(db: Session, superAdmin_id: int, superAdmin_update: schemas.SuperAdminCreate):
+    db_superAdmin = get_superAdmin(db, superAdmin_id)
+    if not db_superAdmin:
+        return None
+    for key, value in superAdmin_update.model_dump(exclude_unset=True).items():
+        setattr(db_superAdmin, key, value)
+    db.commit()
+    db.refresh(db_superAdmin)
+    return db_superAdmin
+
+
+def delete_superAdmin(db: Session, superAdmin_id: int):
+    db_superAdmin = get_superAdmin(db, superAdmin_id)
+    if not db_superAdmin:
+        return None
+    db.delete(db_superAdmin)
+    db.commit()
+    return db_superAdmin

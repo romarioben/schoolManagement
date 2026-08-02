@@ -483,6 +483,72 @@ def get_all_teacher_class_subject_period(teacher_id: Optional[int] | None = None
 def delete_teacher_class_subject_period(teacher_id: int, school_class_id: int, subject_id: int, period_id: int, db: Session = Depends(get_db)):
     return crud.delete_teacher_class_subject_period(db=db, teacher_id=teacher_id, school_class_id=school_class_id, subject_id=subject_id, period_id=period_id)
 
+
+
+admin_router = APIRouter(tags=["Admins"], dependencies=[Depends(require_admin_or_superadmin)])
+@admin_router.post("/admins/", response_model=schemas.AdminResponse, status_code=status.HTTP_201_CREATED)
+def create_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
+    return crud.create_admin(db=db, admin=admin)
+
+@admin_router.get("/admins/", response_model=List[schemas.AdminResponse])
+def read_admins(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_admins(db, skip=skip, limit=limit)
+
+@admin_router.get("/admins/{admin_id}", response_model=schemas.AdminResponse)
+def read_admin(admin_id: int, db: Session = Depends(get_db)):   
+    db_admin = crud.get_admin(db, admin_id=admin_id)
+    if not db_admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return db_admin
+
+@admin_router.put("/admins/{admin_id}", response_model=schemas.AdminResponse)
+def update_admin(admin_id: int, admin: schemas.AdminCreate, db: Session = Depends(get_db)):
+    db_admin = crud.update_admin(db, admin_id=admin_id, admin=admin)
+    if not db_admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return db_admin
+
+@admin_router.delete("/admins/{admin_id}", response_model=schemas.AdminResponse)
+def delete_admin(admin_id: int, db: Session = Depends(get_db)):
+    db_admin = crud.delete_admin(db, admin_id=admin_id)
+    if not db_admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return db_admin
+
+superAdmin_router = APIRouter(tags=["Super Admins"], dependencies=[Depends(require_admin_or_superadmin)])
+@superAdmin_router.get("/super-admins/", response_model=List[schemas.SuperAdminResponse])
+def read_superAdmins(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_superAdmins(db, skip=skip, limit=limit)
+
+@superAdmin_router.post("/super-admins/", response_model=schemas.SuperAdminResponse, status_code=status.HTTP_201_CREATED)
+def create_superAdmin(superAdmin: schemas.SuperAdminCreate, db: Session = Depends(get_db)):
+    return crud.create_superAdmin(db=db, superAdmin=superAdmin)
+
+@superAdmin_router.get("/super-admins/{superAdmin_id}", response_model=schemas.SuperAdminResponse)
+def read_superAdmin(superAdmin_id: int, db: Session = Depends(get_db)):
+    db_superAdmin = crud.get_superAdmin(db, superAdmin_id=superAdmin_id)
+    if not db_superAdmin:
+        raise HTTPException(status_code=404, detail="Super Admin not found")
+    return db_superAdmin
+
+@superAdmin_router.put("/super-admins/{superAdmin_id}", response_model=schemas.SuperAdminResponse)
+def update_superAdmin(superAdmin_id: int, superAdmin: schemas.SuperAdminCreate, db: Session = Depends(get_db)):
+    db_superAdmin = crud.update_superAdmin(db, superAdmin_id=superAdmin_id, superAdmin=superAdmin)
+    if not db_superAdmin:
+        raise HTTPException(status_code=404, detail="Super Admin not found")
+    return db_superAdmin
+
+@superAdmin_router.delete("/super-admins/{superAdmin_id}", response_model=schemas.SuperAdminResponse)
+def delete_superAdmin(superAdmin_id: int, db: Session = Depends(get_db)):
+    db_superAdmin = crud.delete_superAdmin(db, superAdmin_id=superAdmin_id)
+    if not db_superAdmin:
+        raise HTTPException(status_code=404, detail="Super Admin not found")
+    return db_superAdmin
+
+
+
+
+
 main_router = APIRouter()
 main_router.include_router(student_router)
 main_router.include_router(parent_router)
@@ -496,4 +562,6 @@ main_router.include_router(subject_router)
 main_router.include_router(subject_class_assoc_router)
 main_router.include_router(teacher_router)
 main_router.include_router(teacher_class_subject_period_router)
+main_router.include_router(admin_router)
+main_router.include_router(superAdmin_router)
  # For School Year routes

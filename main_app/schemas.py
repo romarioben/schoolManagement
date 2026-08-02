@@ -275,6 +275,30 @@ class TeacherClassSubjectPeriodResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class AdminCreate(TeacherCreate):
+    poste: Optional[str] = None  # Poste de l'administrateur, peut être nul
+    role: str = "admin"  # Le rôle est fixé à "admin" pour tous les administrateurs
+
+class SuperAdminCreate(AdminCreate):
+    poste: Optional[str] = None  # Poste du super administrateur, peut être nul
+    role: str = "superadmin"  # Le rôle est fixé à "superadmin" pour tous les super administrateurs
+
+
+class AdminResponse(TeacherResponse):
+    id: int
+    poste: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class SuperAdminResponse(AdminResponse):
+    id: int
+    poste: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
   
 # Résolution des références circulaires Pydantic si nécessaire
 ParentStudentLinkResponse.model_rebuild()

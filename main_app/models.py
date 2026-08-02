@@ -226,3 +226,25 @@ class TeacherClassSubjectPeriod(Base):
     school_class = relationship("SchoolClass", backref="teacher_class_subject_periods")
     subject = relationship("Subject", backref="teacher_class_subject_periods")
     period = relationship("Period", backref="teacher_class_subject_periods")
+    
+class Admin(Teacher):
+    __tablename__ = "admins"
+
+    id: Mapped[int] = mapped_column(ForeignKey("teachers.id"), primary_key=True)
+    #role: Mapped[str] = mapped_column(String(50), default="admin)
+    poste: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "admin",
+    }
+
+class SuperAdmin(Admin):
+    __tablename__ = "superadmins"
+
+    id: Mapped[int] = mapped_column(ForeignKey("admins.id"), primary_key=True)
+    #role: Mapped[str] = mapped_column(String(50), default="superadmin")
+    #poste: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "superadmin",
+    }
