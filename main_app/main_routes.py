@@ -6,6 +6,8 @@ from . import models, schemas, crud
 from config.database import get_db
 from auth_app.auth import get_current_active_user, require_admin_or_superadmin
 
+from mark_app import mark_routes
+
 
 # ==================== ROUTES STUDENTS ====================
 
@@ -564,4 +566,7 @@ main_router.include_router(teacher_router)
 main_router.include_router(teacher_class_subject_period_router)
 main_router.include_router(admin_router)
 main_router.include_router(superAdmin_router)
+
+
+main_router.include_router(mark_routes.router)
  # For School Year routes

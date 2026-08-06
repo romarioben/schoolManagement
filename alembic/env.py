@@ -14,6 +14,7 @@ from config.config import settings  # noqa: E402
 from config.database import Base  # noqa: E402  -- imports every model so metadata is complete
 from auth_app.models import User  # noqa: E402
 from main_app.models import Student, Parent
+from mark_app.models import MarkType, Mark  # noqa: E402
 
 database_url = settings.database_url
 
