@@ -1,5 +1,5 @@
 import enum
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import List, Optional
 
 from sqlalchemy import (
@@ -50,6 +50,14 @@ class Mark(Base):
     subject_id: Mapped[Optional[int]] = mapped_column(ForeignKey("subjects.id"), nullable=True)
     period_id: Mapped[Optional[int]] = mapped_column(ForeignKey("periods.id"), nullable=True)
     school_class_id: Mapped[Optional[int]] = mapped_column(ForeignKey("school_classes.id"))
+    
+    created_at: Mapped[datetime] = mapped_column(
+            DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        )
+    
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+            DateTime(timezone=True), default=None, nullable=True, onupdate=lambda: datetime.now(timezone.utc)
+        )
 
     #student: Mapped["Student"] = relationship(back_populates="marks")
     #mark_type: Mapped["MarkType"] = relationship(back_populates="marks")
